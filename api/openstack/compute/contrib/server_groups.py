@@ -46,6 +46,10 @@ def make_member(elem):
 
 def make_group(elem):
     elem.set('name')
+    #sean add
+    elem.set('description')
+    elem.set('created_at')
+    #end
     elem.set('id')
     policies = xmlutil.SubTemplateElement(elem, 'policies')
     policy = xmlutil.SubTemplateElement(policies, 'policy',
@@ -104,6 +108,11 @@ class ServerGroupXMLDeserializer(wsgi.MetadataXMLDeserializer):
             if sg_node.hasAttribute('name'):
                 server_group['name'] = sg_node.getAttribute('name')
 
+            #sean add
+            if sg_node.hasAttribute('description'):
+                server_group['description'] = sg_node.getAttribute('description') 
+            #end
+
             if sg_node.hasAttribute('id'):
                 server_group['id'] = sg_node.getAttribute('id')
 
@@ -151,6 +160,10 @@ class ServerGroupController(wsgi.Controller):
         server_group = {}
         server_group['id'] = group.uuid
         server_group['name'] = group.name
+        #sean add
+        server_group['description'] = group.description
+        server_group['created_at'] = group.created_at
+        #sean end
         server_group['policies'] = group.policies or []
         server_group['metadata'] = group.metadetails or {}
         members = []
@@ -188,7 +201,10 @@ class ServerGroupController(wsgi.Controller):
 
         subbody = dict(body[entity_name])
 
-        expected_fields = ['name', 'policies']
+        #sean add
+        #expected_fields = ['name', 'policies']
+        expected_fields = ['name', 'policies', 'description']
+        #end
         for field in expected_fields:
             value = subbody.pop(field, None)
             if not value:
@@ -200,6 +216,16 @@ class ServerGroupController(wsgi.Controller):
                 if not common.VALID_NAME_REGEX.search(value):
                     msg = _("Invalid format for name: '%s'") % value
                     raise nova.exception.InvalidInput(reason=msg)
+
+            #sean start
+            elif field == 'description':
+                utils.check_string_length(value, field,
+                                          min_length=1, max_length=255)
+                if not common.VALID_NAME_REGEX.search(value):
+                    msg = _("Invalid format for description: '%s'") % value
+                    raise nova.exception.InvalidInput(reason=msg)
+            #end    
+
             elif field == 'policies':
                 if isinstance(value, list):
                     [utils.check_string_length(v, field,
@@ -265,13 +291,42 @@ class ServerGroupController(wsgi.Controller):
         sg.user_id = context.user_id
         try:
             sg.name = vals.get('name')
+            #sean add
+            sg.description = vals.get('description')
+            #end
             sg.policies = vals.get('policies')
             sg.create(context)
         except ValueError as e:
             raise exc.HTTPBadRequest(explanation=e)
 
         return {'server_group': self._format_server_group(context, sg)}
+    
+    #sean add
+    @wsgi.serializers(xml=ServerGroupTemplate)
+    def update(self, req, id, body):
+        """Update a server group.
+           can only update description and name,
+            
+        value = {"description": "", "members": [], "metadata": {}, "name": "", "policies": []
+                 }
+        """
+        context = _authorize_context(req)
+         
+        try:
+            sg = instance_group_obj.InstanceGroup.get_by_uuid(context, id)
+            sg.update( context, id, body.get("server_group"))             
 
+        except ValueError as e:
+            raise exc.HTTPBadRequest(explanation=e)
+         
+        try:
+            sg = instance_group_obj.InstanceGroup.get_by_uuid(context, id)
+        except nova.exception.InstanceGroupNotFound as e:
+            raise webob.exc.HTTPNotFound(explanation=e.format_message())
+         
+        return {'server_group': self._format_server_group(context, sg)}
+        #end
+    
 
 class ServerGroupsTemplateElement(xmlutil.TemplateElement):
     def will_render(self, datum):

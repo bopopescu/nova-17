@@ -38,7 +38,10 @@ class InstanceGroup(base.NovaPersistentObject, base.NovaObject):
 
         'uuid': fields.UUIDField(),
         'name': fields.StringField(nullable=True),
-
+        #sean add
+        'description': fields.StringField(nullable=True),
+        'created_at': fields.DateTimeField(nullable=True),
+        #end
         'policies': fields.ListOfStringsField(nullable=True),
         'metadetails': fields.DictOfStringsField(nullable=True),
         'members': fields.ListOfStringsField(nullable=True),
@@ -129,6 +132,16 @@ class InstanceGroup(base.NovaPersistentObject, base.NovaObject):
                                            metadata=metadetails,
                                            members=members)
         self._from_db_object(context, self, db_inst)
+
+
+    #sean add
+    @base.remotable
+    def update(self, context, id, values):
+        db_inst = db.instance_group_update(context, id, values)
+        
+     #   self._from_db_object(context, self, db_inst)
+    #end
+
 
     @base.remotable
     def destroy(self, context):

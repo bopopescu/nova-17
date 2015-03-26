@@ -1329,6 +1329,9 @@ class InstanceGroup(BASE, NovaBase):
     project_id = Column(String(255))
     uuid = Column(String(36), nullable=False)
     name = Column(String(255))
+    #sean add
+    description = Column(String(255))
+    #end
     _policies = relationship(InstanceGroupPolicy, primaryjoin='and_('
         'InstanceGroup.id == InstanceGroupPolicy.group_id,'
         'InstanceGroupPolicy.deleted == 0,'
